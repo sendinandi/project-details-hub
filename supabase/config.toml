@@ -1,1 +1,4 @@
 project_id = "ntknsymsrphkjdqecwby"
+
+[functions.scan-waste]
+verify_jwt = false

@@ -9,6 +9,8 @@ import Register from "./pages/Register";
 import Marketplace from "./pages/Marketplace";
 import Blog from "./pages/Blog";
 import RecycleMap from "./pages/RecycleMap";
+import Scanner from "./pages/Scanner";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +28,8 @@ const App = () => (
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/map" element={<RecycleMap />} />
+          <Route path="/scanner" element={<Scanner />} />
+          <Route path="/checkout" element={<Checkout />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
