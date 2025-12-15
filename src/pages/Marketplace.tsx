@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, ShoppingCart, Heart, Star, Leaf } from "lucide-react";
+import { useCart } from "@/hooks/useCart";
+import { CartSheet } from "@/components/cart/CartSheet";
+import { useToast } from "@/hooks/use-toast";
 
 const categories = [
   "All",
@@ -96,11 +99,27 @@ const Marketplace = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [favorites, setFavorites] = useState<number[]>([]);
+  const { items, addItem, updateQuantity, removeItem, totalItems, totalPrice } = useCart();
+  const { toast } = useToast();
 
   const toggleFavorite = (id: number) => {
     setFavorites((prev) =>
       prev.includes(id) ? prev.filter((fid) => fid !== id) : [...prev, id]
     );
+  };
+
+  const handleAddToCart = (product: typeof products[0]) => {
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+      seller: product.seller,
+    });
+    toast({
+      title: "Added to cart",
+      description: `${product.name} has been added to your cart.`,
+    });
   };
 
   const filteredProducts = products.filter((product) => {
@@ -159,6 +178,15 @@ const Marketplace = () => {
                   {category}
                 </Button>
               ))}
+              <div className="ml-auto shrink-0">
+                <CartSheet
+                  items={items}
+                  totalItems={totalItems}
+                  totalPrice={totalPrice}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={removeItem}
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -235,7 +263,11 @@ const Marketplace = () => {
                             </span>
                           )}
                         </div>
-                        <Button size="icon" variant="default">
+                        <Button 
+                          size="icon" 
+                          variant="default"
+                          onClick={() => handleAddToCart(product)}
+                        >
                           <ShoppingCart className="w-4 h-4" />
                         </Button>
                       </div>
