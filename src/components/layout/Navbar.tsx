@@ -101,12 +101,12 @@ export function Navbar() {
           <div className="hidden lg:flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-3">
-                 <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                 <Link to="/profile" className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <User className="w-4 h-4" />
                     </div>
                     <span>{userName || "User"}</span>
-                 </div>
+                 </Link>
                  <Button variant="ghost" size="sm" onClick={handleLogout}>
                    Logout
                  </Button>

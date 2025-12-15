@@ -76,7 +76,10 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
-      // 1. Insert ke tabel Orders
+      // 1. Hitung Poin (Misal: Rp 10.000 = 1 Poin)
+      const pointsEarned = Math.floor(grandTotal / 10000);
+
+      // 2. Insert ke tabel Orders
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert([
@@ -95,7 +98,7 @@ const Checkout = () => {
       if (orderError) throw orderError;
 
       if (orderData) {
-        // 2. Siapkan data items
+        // 3. Insert ke tabel Order Items
         const orderItems = items.map(item => ({
           order_id: orderData.id,
           product_id: item.id,
@@ -104,21 +107,40 @@ const Checkout = () => {
           price_at_time: item.price
         }));
 
-        // 3. Insert ke tabel Order Items
         const { error: itemsError } = await supabase
           .from('order_items')
           .insert(orderItems);
 
         if (itemsError) throw itemsError;
 
-        // 4. Sukses
+        // --- SISTEM POIN ---
+        // 4. Ambil poin user saat ini
+        const { data: userData } = await supabase
+          .from('users')
+          .select('points_balance')
+          .eq('id', user.id)
+          .single();
+        
+        const currentPoints = userData?.points_balance || 0;
+        const newPoints = currentPoints + pointsEarned;
+
+        // 5. Update poin user
+        const { error: pointsError } = await supabase
+          .from('users')
+          .update({ points_balance: newPoints })
+          .eq('id', user.id);
+
+        if (pointsError) console.error("Gagal update poin:", pointsError);
+        // -------------------
+
+        // 6. Sukses
         toast({
           title: "Order Placed Successfully!",
-          description: "Thank you for your eco-friendly purchase.",
+          description: `You earned ${pointsEarned} eco-points from this purchase!`,
         });
 
         clearCart();
-        navigate("/marketplace"); // Atau redirect ke halaman 'My Orders' jika ada
+        navigate("/profile"); // Redirect ke Profile untuk lihat order & poin
       }
 
     } catch (error: any) {
