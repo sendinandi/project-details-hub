@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/useCart";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CreditCard, Truck, ShoppingBag, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("id-ID", {
@@ -24,25 +25,112 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
 
   const shippingCost = 15000;
   const grandTotal = totalPrice + shippingCost;
 
+  // Cek User Login
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUser(user);
+        // Pre-fill email jika ada
+        setFormData(prev => ({ ...prev, email: user.email || "" }));
+      } else {
+        // Opsional: Redirect ke login jika wajib login
+        // navigate("/login");
+      }
+    };
+    checkUser();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Please Login",
+        description: "You need to be logged in to place an order.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
     setIsProcessing(true);
 
-    // Simulate order processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // 1. Insert ke tabel Orders
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            buyer_id: user.id,
+            recipient_name: `${formData.firstName} ${formData.lastName}`,
+            phone_number: formData.phone,
+            shipping_address: formData.address,
+            total_amount: grandTotal,
+            status: 'pending'
+          }
+        ])
+        .select()
+        .single();
 
-    toast({
-      title: "Order Placed Successfully!",
-      description: "Thank you for your eco-friendly purchase.",
-    });
+      if (orderError) throw orderError;
 
-    clearCart();
-    navigate("/marketplace");
-    setIsProcessing(false);
+      if (orderData) {
+        // 2. Siapkan data items
+        const orderItems = items.map(item => ({
+          order_id: orderData.id,
+          product_id: item.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          price_at_time: item.price
+        }));
+
+        // 3. Insert ke tabel Order Items
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
+
+        if (itemsError) throw itemsError;
+
+        // 4. Sukses
+        toast({
+          title: "Order Placed Successfully!",
+          description: "Thank you for your eco-friendly purchase.",
+        });
+
+        clearCart();
+        navigate("/marketplace"); // Atau redirect ke halaman 'My Orders' jika ada
+      }
+
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Checkout Failed",
+        description: error.message || "Something went wrong processing your order.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -99,24 +187,52 @@ const Checkout = () => {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" required />
+                        <Input 
+                          id="firstName" 
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          required 
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" required />
+                        <Input 
+                          id="lastName" 
+                          value={formData.lastName}
+                          onChange={handleInputChange}
+                          required 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" required />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" type="tel" required />
+                      <Input 
+                        id="phone" 
+                        type="tel" 
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="address">Shipping Address</Label>
-                      <Textarea id="address" rows={3} required />
+                      <Textarea 
+                        id="address" 
+                        rows={3} 
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        required 
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -144,12 +260,12 @@ const Checkout = () => {
                   className="w-full"
                   disabled={isProcessing}
                 >
-                  {isProcessing ? "Processing..." : `Place Order - ${formatPrice(grandTotal)}`}
+                  {isProcessing ? "Processing Order..." : `Place Order - ${formatPrice(grandTotal)}`}
                 </Button>
               </form>
             </div>
 
-            {/* Order Summary */}
+            {/* Order Summary (Logic sama seperti sebelumnya) */}
             <div>
               <Card className="sticky top-24">
                 <CardHeader>

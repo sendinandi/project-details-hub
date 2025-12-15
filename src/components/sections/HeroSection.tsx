@@ -67,7 +67,7 @@ export function HeroSection() {
               </Link>
             </Button>
             <Button variant="hero-outline" size="lg" asChild>
-              <Link to="/scan">
+              <Link to="/scanner">
                 Try AI Scanner
                 <Sparkles className="w-5 h-5" />
               </Link>
