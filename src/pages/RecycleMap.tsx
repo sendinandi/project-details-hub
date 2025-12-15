@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, MapPin, Clock, Phone, Star, Navigation, Filter } from "lucide-react";
+import { Search, MapPin, Clock, Phone, Star, Navigation } from "lucide-react";
+import LeafletMap from "@/components/map/LeafletMap";
+import AddressSearch from "@/components/map/AddressSearch";
 
 const locations = [
   {
@@ -13,6 +14,8 @@ const locations = [
     name: "Green Waste Bank Jakarta",
     type: "Waste Bank",
     address: "Jl. Eco Green No. 123, Central Jakarta",
+    lat: -6.1862,
+    lng: 106.8342,
     distance: "1.2 km",
     rating: 4.8,
     hours: "08:00 - 17:00",
@@ -24,6 +27,8 @@ const locations = [
     name: "Recycle Hub South",
     type: "Recycling Center",
     address: "Jl. Sustainable Way No. 45, South Jakarta",
+    lat: -6.2615,
+    lng: 106.8106,
     distance: "2.5 km",
     rating: 4.6,
     hours: "09:00 - 18:00",
@@ -35,6 +40,8 @@ const locations = [
     name: "EcoMart Collection Point",
     type: "Drop-off Point",
     address: "Mall Eco Plaza, Jl. Green Ave No. 88",
+    lat: -6.2246,
+    lng: 106.8451,
     distance: "3.1 km",
     rating: 4.5,
     hours: "10:00 - 21:00",
@@ -46,6 +53,8 @@ const locations = [
     name: "Community Compost Center",
     type: "Compost Center",
     address: "Taman Eco Community, West Jakarta",
+    lat: -6.1678,
+    lng: 106.7651,
     distance: "4.2 km",
     rating: 4.9,
     hours: "07:00 - 16:00",
@@ -60,6 +69,7 @@ const RecycleMap = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-6.2088, 106.8456]);
 
   const filteredLocations = locations.filter((location) => {
     const matchesSearch = location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -67,6 +77,14 @@ const RecycleMap = () => {
     const matchesFilter = selectedFilter === "All" || location.type === selectedFilter;
     return matchesSearch && matchesFilter;
   });
+
+  const handleLocationSelect = useCallback((id: number) => {
+    setSelectedLocation(id);
+  }, []);
+
+  const handleAddressSelect = useCallback((lat: number, lng: number, _address: string) => {
+    setMapCenter([lat, lng]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -83,11 +101,18 @@ const RecycleMap = () => {
                 <h1 className="text-xl font-heading font-bold">Recycle Map</h1>
               </div>
               
+              {/* Address Search with Autocomplete */}
+              <AddressSearch
+                onLocationSelect={handleAddressSelect}
+                placeholder="Search address on map..."
+              />
+
+              {/* Location Filter Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search locations..."
+                  placeholder="Filter recycling locations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -180,27 +205,14 @@ const RecycleMap = () => {
           </div>
 
           {/* Map Area */}
-          <div className="flex-1 bg-muted relative">
-            {/* Placeholder Map */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center p-8">
-                <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <MapPin className="w-12 h-12 text-primary" />
-                </div>
-                <h3 className="text-xl font-heading font-semibold text-foreground mb-2">
-                  Interactive Map
-                </h3>
-                <p className="text-muted-foreground max-w-sm">
-                  Connect to Google Maps API to view recycling locations near you. 
-                  Select a location from the list to see details.
-                </p>
-                <Button variant="outline" className="mt-4">
-                  Enable Location
-                </Button>
-              </div>
-            </div>
-
-            {/* Map pins would be rendered here with actual map integration */}
+          <div className="flex-1 relative">
+            <LeafletMap
+              locations={filteredLocations}
+              selectedLocation={selectedLocation}
+              onLocationSelect={handleLocationSelect}
+              center={mapCenter}
+              zoom={12}
+            />
           </div>
         </div>
       </main>
