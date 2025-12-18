@@ -14,16 +14,353 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      locations: {
+        Row: {
+          accepted_waste: string[] | null
+          address: string
+          created_at: string | null
+          id: number
+          latitude: number | null
+          longitude: number | null
+          name: string
+          operating_hours: string | null
+          phone: string | null
+          type: string | null
+        }
+        Insert: {
+          accepted_waste?: string[] | null
+          address: string
+          created_at?: string | null
+          id?: number
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          operating_hours?: string | null
+          phone?: string | null
+          type?: string | null
+        }
+        Update: {
+          accepted_waste?: string[] | null
+          address?: string
+          created_at?: string | null
+          id?: number
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          operating_hours?: string | null
+          phone?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_id: string
+          product_id: number | null
+          product_name: string
+          product_price: number
+          quantity: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_id: string
+          product_id?: number | null
+          product_name: string
+          product_price: number
+          quantity: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          product_id?: number | null
+          product_name?: string
+          product_price?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string | null
+          id: string
+          payment_id: string | null
+          payment_method: string | null
+          points_earned: number | null
+          shipping_address: string | null
+          shipping_city: string | null
+          shipping_cost: number | null
+          shipping_name: string | null
+          shipping_phone: string | null
+          shipping_postal_code: string | null
+          status: string | null
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_method?: string | null
+          points_earned?: number | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_cost?: number | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          status?: string | null
+          total_amount: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payment_id?: string | null
+          payment_method?: string | null
+          points_earned?: number | null
+          shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_cost?: number | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          status?: string | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: number
+          image_url: string | null
+          name: string
+          price: number
+          rating: number | null
+          seller_id: string | null
+          stock: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          image_url?: string | null
+          name: string
+          price: number
+          rating?: number | null
+          seller_id?: string | null
+          stock?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          image_url?: string | null
+          name?: string
+          price?: number
+          rating?: number | null
+          seller_id?: string | null
+          stock?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rewards: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          image_url: string | null
+          name: string
+          points_required: number
+          stock: number | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          image_url?: string | null
+          name: string
+          points_required: number
+          stock?: number | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          image_url?: string | null
+          name?: string
+          points_required?: number
+          stock?: number | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      scan_histories: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          points_earned: number | null
+          result: Json | null
+          user_id: string
+          waste_type_id: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          points_earned?: number | null
+          result?: Json | null
+          user_id: string
+          waste_type_id?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          points_earned?: number | null
+          result?: Json | null
+          user_id?: string
+          waste_type_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_histories_waste_type_id_fkey"
+            columns: ["waste_type_id"]
+            isOneToOne: false
+            referencedRelation: "waste_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          points: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          name?: string | null
+          phone?: string | null
+          points?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          points?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      waste_types: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          id: number
+          name: string
+          points: number | null
+          recyclable: boolean | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name: string
+          points?: number | null
+          recyclable?: boolean | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          name?: string
+          points?: number | null
+          recyclable?: boolean | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "seller" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +487,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "seller", "admin"],
+    },
   },
 } as const
