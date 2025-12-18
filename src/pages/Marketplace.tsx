@@ -59,8 +59,7 @@ const Marketplace = () => {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('products')
-          .select('*')
-          .eq('is_active', true); // Hanya ambil produk aktif
+          .select('*');
 
         if (error) {
           console.error("Error fetching products:", error);
