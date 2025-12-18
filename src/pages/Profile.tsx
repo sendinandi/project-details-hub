@@ -10,17 +10,16 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
-  name: string;
+  name: string | null;
   email: string;
-  role: string;
-  points_balance: number;
+  points: number | null;
 }
 
 interface Order {
-  id: number;
+  id: string;
   created_at: string;
   total_amount: number;
-  status: string;
+  status: string | null;
 }
 
 const formatPrice = (price: number) => {
@@ -59,7 +58,7 @@ const Profile = () => {
         // 1. Ambil data Profile
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('*')
+          .select('name, email, points')
           .eq('id', session.user.id)
           .single();
 
@@ -69,8 +68,8 @@ const Profile = () => {
         // 2. Ambil data Order History
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
-          .select('*')
-          .eq('buyer_id', session.user.id)
+          .select('id, created_at, total_amount, status')
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false });
 
         if (ordersError) throw ordersError;
@@ -123,10 +122,10 @@ const Profile = () => {
                   </div>
                 </div>
                 <CardContent>
-                  <h2 className="text-xl font-heading font-bold">{profile?.name}</h2>
+                  <h2 className="text-xl font-heading font-bold">{profile?.name || 'User'}</h2>
                   <p className="text-sm text-muted-foreground mb-4">{profile?.email}</p>
                   <Badge variant="secondary" className="mb-6 uppercase text-xs tracking-wider">
-                    {profile?.role}
+                    Member
                   </Badge>
                   
                   <Button variant="outline" className="w-full text-red-500 hover:text-red-600 hover:bg-red-50" onClick={handleLogout}>
@@ -145,7 +144,7 @@ const Profile = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Eco Points Balance</p>
                     <h3 className="text-2xl font-bold text-foreground">
-                      {profile?.points_balance || 0} <span className="text-sm font-normal text-muted-foreground">pts</span>
+                      {profile?.points || 0} <span className="text-sm font-normal text-muted-foreground">pts</span>
                     </h3>
                   </div>
                 </CardContent>

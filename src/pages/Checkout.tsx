@@ -84,9 +84,9 @@ const Checkout = () => {
         .from('orders')
         .insert([
           {
-            buyer_id: user.id,
-            recipient_name: `${formData.firstName} ${formData.lastName}`,
-            phone_number: formData.phone,
+            user_id: user.id,
+            shipping_name: `${formData.firstName} ${formData.lastName}`,
+            shipping_phone: formData.phone,
             shipping_address: formData.address,
             total_amount: grandTotal,
             status: 'pending'
@@ -104,7 +104,7 @@ const Checkout = () => {
           product_id: item.id,
           product_name: item.name,
           quantity: item.quantity,
-          price_at_time: item.price
+          product_price: item.price
         }));
 
         const { error: itemsError } = await supabase
@@ -117,17 +117,17 @@ const Checkout = () => {
         // 4. Ambil poin user saat ini
         const { data: userData } = await supabase
           .from('users')
-          .select('points_balance')
+          .select('points')
           .eq('id', user.id)
           .single();
         
-        const currentPoints = userData?.points_balance || 0;
+        const currentPoints = userData?.points || 0;
         const newPoints = currentPoints + pointsEarned;
 
         // 5. Update poin user
         const { error: pointsError } = await supabase
           .from('users')
-          .update({ points_balance: newPoints })
+          .update({ points: newPoints })
           .eq('id', user.id);
 
         if (pointsError) console.error("Gagal update poin:", pointsError);
