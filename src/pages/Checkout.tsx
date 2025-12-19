@@ -113,22 +113,12 @@ const Checkout = () => {
 
         if (itemsError) throw itemsError;
 
-        // --- SISTEM POIN ---
-        // 4. Ambil poin user saat ini
-        const { data: userData } = await supabase
-          .from('users')
-          .select('points')
-          .eq('id', user.id)
-          .single();
-        
-        const currentPoints = userData?.points || 0;
-        const newPoints = currentPoints + pointsEarned;
-
-        // 5. Update poin user
-        const { error: pointsError } = await supabase
-          .from('users')
-          .update({ points: newPoints })
-          .eq('id', user.id);
+        // --- SISTEM POIN (Atomic Update) ---
+        // Use RPC function for atomic points update to prevent race conditions
+        const { error: pointsError } = await supabase.rpc('add_user_points', {
+          _user_id: user.id,
+          _points: pointsEarned
+        });
 
         if (pointsError) console.error("Gagal update poin:", pointsError);
         // -------------------
