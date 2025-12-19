@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/hooks/useCart";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -21,26 +23,59 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <CartProvider> {/* <--- TAMBAHKAN PEMBUNGKUS INI */}
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/map" element={<RecycleMap />} />
-          <Route path="/scanner" element={<Scanner />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-      </CartProvider> {/* <--- TAMBAHKAN PEMBUNGKUS INI */}
+      <AuthProvider>
+        <CartProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Protected routes */}
+              <Route path="/marketplace" element={
+                <ProtectedRoute>
+                  <Marketplace />
+                </ProtectedRoute>
+              } />
+              <Route path="/blog" element={
+                <ProtectedRoute>
+                  <Blog />
+                </ProtectedRoute>
+              } />
+              <Route path="/map" element={
+                <ProtectedRoute>
+                  <RecycleMap />
+                </ProtectedRoute>
+              } />
+              <Route path="/scanner" element={
+                <ProtectedRoute>
+                  <Scanner />
+                </ProtectedRoute>
+              } />
+              <Route path="/checkout" element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </CartProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
