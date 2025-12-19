@@ -5,25 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, ShoppingCart, Heart, Star, Leaf } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, ShoppingCart, Heart, Star, Leaf, SlidersHorizontal, X } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { CartSheet } from "@/components/cart/CartSheet";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const categories = [
-  "All",
-  "Reusable Bags",
-  "Bamboo Products",
-  "Organic Food",
-  "Recycled Items",
-  "Eco Fashion",
-];
-
 // Interface untuk data yang diambil dari Supabase
 interface ProductData {
   id: number;
   name: string;
+  description: string;
   price: number;
   originalPrice?: number;
   rating: number;
@@ -32,6 +25,7 @@ interface ProductData {
   category: string;
   badge?: string;
   image: string;
+  stock: number;
 }
 
 const formatPrice = (price: number) => {
@@ -44,9 +38,13 @@ const formatPrice = (price: number) => {
 
 const Marketplace = () => {
   const [products, setProducts] = useState<ProductData[]>([]);
+  const [categories, setCategories] = useState<string[]>(["All"]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortBy, setSortBy] = useState("newest");
+  const [priceRange, setPriceRange] = useState<string>("all");
+  const [showFilters, setShowFilters] = useState(false);
   const [favorites, setFavorites] = useState<number[]>([]);
   
   const { items, addItem, updateQuantity, removeItem, totalItems, totalPrice } = useCart();
@@ -59,7 +57,8 @@ const Marketplace = () => {
         setIsLoading(true);
         const { data, error } = await supabase
           .from('products')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false });
 
         if (error) {
           console.error("Error fetching products:", error);
@@ -72,18 +71,24 @@ const Marketplace = () => {
         }
 
         if (data) {
+          // Extract unique categories
+          const uniqueCategories = [...new Set(data.map((item: any) => item.category).filter(Boolean))];
+          setCategories(["All", ...uniqueCategories]);
+
           // Mapping data Database (snake_case) ke Frontend (camelCase)
           const formattedData: ProductData[] = data.map((item: any) => ({
             id: item.id,
             name: item.name,
-            price: Number(item.price), // Pastikan jadi number
+            description: item.description || "",
+            price: Number(item.price),
             originalPrice: item.original_price ? Number(item.original_price) : undefined,
             rating: Number(item.rating) || 0,
             reviews: item.reviews_count || 0,
-            seller: item.seller_name || "Eco Seller", // Fallback jika kosong
+            seller: item.seller_name || "Eco Seller",
             category: item.category || "General",
             badge: item.badge,
-            image: item.image_url || "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400", // Fallback image
+            image: item.image_url || "https://images.unsplash.com/photo-1544816155-12df9643f363?w=400",
+            stock: item.stock || 0,
           }));
           setProducts(formattedData);
         }
@@ -117,11 +122,51 @@ const Marketplace = () => {
     });
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("All");
+    setSortBy("newest");
+    setPriceRange("all");
+  };
+
+  const hasActiveFilters = searchQuery || selectedCategory !== "All" || sortBy !== "newest" || priceRange !== "all";
+
+  // Filter and sort products
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+      
+      let matchesPrice = true;
+      switch (priceRange) {
+        case "under50":
+          matchesPrice = product.price < 50000;
+          break;
+        case "50to100":
+          matchesPrice = product.price >= 50000 && product.price <= 100000;
+          break;
+        case "over100":
+          matchesPrice = product.price > 100000;
+          break;
+      }
+      
+      return matchesSearch && matchesCategory && matchesPrice;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.price - b.price;
+        case "price-high":
+          return b.price - a.price;
+        case "rating":
+          return b.rating - a.rating;
+        case "name":
+          return a.name.localeCompare(b.name);
+        default: // newest
+          return 0;
+      }
+    });
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -149,39 +194,110 @@ const Marketplace = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 pr-4 h-14 rounded-2xl bg-background/95 backdrop-blur border-0 text-foreground placeholder:text-muted-foreground"
                 />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2"
+                  >
+                    <X className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Categories */}
-        <section className="py-6 border-b border-border bg-background sticky top-16 lg:top-20 z-30">
+        {/* Filters Bar */}
+        <section className="py-4 border-b border-border bg-background sticky top-16 lg:top-20 z-30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              <Button variant="outline" size="sm" className="shrink-0">
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
-              {categories.map((category) => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
+            <div className="flex flex-col gap-4">
+              {/* Top row: Categories and Cart */}
+              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                <Button 
+                  variant={showFilters ? "default" : "outline"} 
+                  size="sm" 
                   className="shrink-0"
+                  onClick={() => setShowFilters(!showFilters)}
                 >
-                  {category}
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
+                  Filters
+                  {hasActiveFilters && (
+                    <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      !
+                    </Badge>
+                  )}
                 </Button>
-              ))}
-              <div className="ml-auto shrink-0">
-                <CartSheet
-                  items={items}
-                  totalItems={totalItems}
-                  totalPrice={totalPrice}
-                  onUpdateQuantity={updateQuantity}
-                  onRemoveItem={removeItem}
-                />
+                
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                    className="shrink-0"
+                  >
+                    {category}
+                  </Button>
+                ))}
+                
+                <div className="ml-auto shrink-0">
+                  <CartSheet
+                    items={items}
+                    totalItems={totalItems}
+                    totalPrice={totalPrice}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveItem={removeItem}
+                  />
+                </div>
               </div>
+
+              {/* Expanded filters */}
+              {showFilters && (
+                <div className="flex flex-wrap items-center gap-4 p-4 bg-muted/50 rounded-xl animate-slide-up">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Sort by:</span>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-[160px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="rating">Highest Rating</SelectItem>
+                        <SelectItem value="name">Name A-Z</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Price:</span>
+                    <Select value={priceRange} onValueChange={setPriceRange}>
+                      <SelectTrigger className="w-[160px] h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Prices</SelectItem>
+                        <SelectItem value="under50">Under Rp 50,000</SelectItem>
+                        <SelectItem value="50to100">Rp 50,000 - 100,000</SelectItem>
+                        <SelectItem value="over100">Over Rp 100,000</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {hasActiveFilters && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={clearFilters}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Clear all
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -206,8 +322,13 @@ const Marketplace = () => {
                  ))}
                </div>
             ) : filteredProducts.length === 0 ? (
-               <div className="text-center py-12 text-muted-foreground">
-                 No products found matching your criteria.
+               <div className="text-center py-12">
+                 <div className="text-muted-foreground mb-4">
+                   No products found matching your criteria.
+                 </div>
+                 <Button variant="outline" onClick={clearFilters}>
+                   Clear Filters
+                 </Button>
                </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -225,11 +346,16 @@ const Marketplace = () => {
                           }}
                         />
                         
-                        {/* Badge */}
-                        {product.badge && (
-                          <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
-                            <Leaf className="w-3 h-3 mr-1" />
-                            {product.badge}
+                        {/* Category Badge */}
+                        <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground">
+                          <Leaf className="w-3 h-3 mr-1" />
+                          {product.category}
+                        </Badge>
+                        
+                        {/* Stock indicator */}
+                        {product.stock < 10 && (
+                          <Badge variant="destructive" className="absolute bottom-3 left-3">
+                            Only {product.stock} left
                           </Badge>
                         )}
                         
@@ -280,6 +406,7 @@ const Marketplace = () => {
                             size="icon" 
                             variant="default"
                             onClick={() => handleAddToCart(product)}
+                            disabled={product.stock === 0}
                           >
                             <ShoppingCart className="w-4 h-4" />
                           </Button>
