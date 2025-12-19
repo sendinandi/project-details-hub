@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Tambah useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,25 @@ import { Footer } from "@/components/layout/Footer";
 import { Recycle, Mail, Lock, Eye, EyeOff, Leaf, User, Store } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client"; // Import Supabase
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 
 type UserType = "user" | "partner";
+
+// Validation schema
+const registerSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name must be less than 100 characters"),
+  email: z.string()
+    .trim()
+    .email("Please enter a valid email address")
+    .max(255, "Email must be less than 255 characters"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be less than 128 characters"),
+});
 
 const Register = () => {
   const [userType, setUserType] = useState<UserType>("user");
@@ -20,18 +36,41 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
+
+    // Validate input
+    const result = registerSchema.safeParse({ name, email, password });
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      toast({
+        title: "Validation Error",
+        description: "Please check the form for errors.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // 1. Daftar ke Supabase Auth
+      // Use validated data
+      const validatedData = result.data;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+        email: validatedData.email,
+        password: validatedData.password,
       });
 
       if (authError) throw authError;
@@ -41,16 +80,15 @@ const Register = () => {
           .from('users')
           .insert([
             {
-              id: authData.user.id, // <--- JANGAN LUPA INI
-              email: email,
-              name: name,
+              id: authData.user.id,
+              email: validatedData.email,
+              name: validatedData.name,
               role: userType === 'partner' ? 'seller' : 'user',
             }
           ]);
 
         if (profileError) {
           console.error("Error creating profile:", profileError);
-          // Tetap lanjut karena akun auth sudah dibuat
         }
 
         toast({
@@ -58,7 +96,6 @@ const Register = () => {
           description: "Welcome to RecycleBud! Please check your email to verify.",
         });
 
-        // Redirect ke login
         navigate("/login");
       }
     } catch (error: any) {
@@ -146,10 +183,14 @@ const Register = () => {
                       placeholder={userType === "partner" ? "Eco Shop" : "John Doe"}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="pl-10"
+                      className={cn("pl-10", validationErrors.name && "border-destructive")}
                       required
+                      maxLength={100}
                     />
                   </div>
+                  {validationErrors.name && (
+                    <p className="text-sm text-destructive">{validationErrors.name}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -162,10 +203,14 @@ const Register = () => {
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className={cn("pl-10", validationErrors.email && "border-destructive")}
                       required
+                      maxLength={255}
                     />
                   </div>
+                  {validationErrors.email && (
+                    <p className="text-sm text-destructive">{validationErrors.email}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -178,8 +223,9 @@ const Register = () => {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
+                      className={cn("pl-10 pr-10", validationErrors.password && "border-destructive")}
                       required
+                      maxLength={128}
                     />
                     <button
                       type="button"
@@ -189,13 +235,14 @@ const Register = () => {
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
+                  {validationErrors.password && (
+                    <p className="text-sm text-destructive">{validationErrors.password}</p>
+                  )}
                 </div>
 
                 <Button type="submit" variant="default" className="w-full" size="lg" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
-
-                {/* Footer Links (omitted for brevity, same as before) */}
               </form>
               <p className="text-center text-sm text-muted-foreground mt-6">
                 Already have an account?{" "}
